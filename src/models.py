@@ -160,6 +160,7 @@ class LiftSplatShoot(nn.Module):
         ys = torch.linspace(0, ogfH - 1, fH, dtype=torch.float).view(1, fH, 1).expand(D, fH, fW)
 
         # D x H x W x 3
+        # 41 x 8 x 22 x 3
         frustum = torch.stack((xs, ys, ds), -1)
         return nn.Parameter(frustum, requires_grad=False)
 
@@ -176,6 +177,7 @@ class LiftSplatShoot(nn.Module):
         points = torch.inverse(post_rots).view(B, N, 1, 1, 1, 3, 3).matmul(points.unsqueeze(-1))
 
         # cam_to_ego
+        # x*lambda , y*lambda, lambda
         points = torch.cat((points[:, :, :, :, :, :2] * points[:, :, :, :, :, 2:3],
                             points[:, :, :, :, :, 2:3]
                             ), 5)
@@ -205,6 +207,7 @@ class LiftSplatShoot(nn.Module):
         x = x.reshape(Nprime, C)
 
         # flatten indices
+        # transform to image pixel
         geom_feats = ((geom_feats - (self.bx - self.dx/2.)) / self.dx).long()
         geom_feats = geom_feats.view(Nprime, 3)
         batch_ix = torch.cat([torch.full([Nprime//B, 1], ix,
@@ -219,6 +222,8 @@ class LiftSplatShoot(nn.Module):
         geom_feats = geom_feats[kept]
 
         # get tensors from the same voxel next to each other
+        # 0:x, 1:y, 2:z, 3:B 
+        # 根据一定的规则生成特征位置的排序
         ranks = geom_feats[:, 0] * (self.nx[1] * self.nx[2] * B)\
             + geom_feats[:, 1] * (self.nx[2] * B)\
             + geom_feats[:, 2] * B\

@@ -172,8 +172,10 @@ normalize_img = torchvision.transforms.Compose((
 
 
 def gen_dx_bx(xbound, ybound, zbound):
+    # unit
     dx = torch.Tensor([row[2] for row in [xbound, ybound, zbound]])
     bx = torch.Tensor([row[0] + row[2]/2.0 for row in [xbound, ybound, zbound]])
+    # solution
     nx = torch.LongTensor([(row[1] - row[0]) / row[2] for row in [xbound, ybound, zbound]])
 
     return dx, bx, nx
@@ -182,9 +184,12 @@ def gen_dx_bx(xbound, ybound, zbound):
 def cumsum_trick(x, geom_feats, ranks):
     x = x.cumsum(0)
     kept = torch.ones(x.shape[0], device=x.device, dtype=torch.bool)
+    # 相同的特征位置只取最后一个
     kept[:-1] = (ranks[1:] != ranks[:-1])
 
     x, geom_feats = x[kept], geom_feats[kept]
+    # splat 
+    # 在累加的x，得到不同特征位置的x
     x = torch.cat((x[:1], x[1:] - x[:-1]))
 
     return x, geom_feats
